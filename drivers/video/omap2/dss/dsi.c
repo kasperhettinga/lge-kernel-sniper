@@ -3061,6 +3061,11 @@ int dsi_vc_send_bta_sync(struct omap_dss_device *dssdev, int channel)
 	int r = 0, i = 0;
 	u32 err;
 
+	r = dsi_register_isr_vc(dsidev, channel, dsi_completion_handler,
+			&completion, DSI_VC_IRQ_BTA);
+	if (r)
+		goto err0;
+
 	r = dsi_register_isr(dsidev, dsi_completion_handler, &completion,
 			DSI_IRQ_ERROR_MASK);
 	if (r)
@@ -3077,7 +3082,7 @@ int dsi_vc_send_bta_sync(struct omap_dss_device *dssdev, int channel)
 
 	r = dsi_vc_send_bta(dsidev, channel);
 	if (r)
-		goto err1;
+		goto err2;
 
 	/* wait for BTA ACK */
 #if !defined(CONFIG_PRODUCT_LGE_KU5900)  // 20120727 sangki.hyun@lge.com MP3 Playing
@@ -3094,11 +3099,11 @@ int dsi_vc_send_bta_sync(struct omap_dss_device *dssdev, int channel)
 	if (i >= 500)
 		DSSERR("sending BTA failed\n");
 #else
-	if (wait_for_completion_timeout(&bta_completion,
+	if (wait_for_completion_timeout(&completion,
 				msecs_to_jiffies(500)) == 0) {
 		DSSERR("Failed to receive BTA\n");
 		r = -EIO;
-		goto err1;
+		goto err2;
 	}
 
 #endif
@@ -3107,9 +3112,10 @@ int dsi_vc_send_bta_sync(struct omap_dss_device *dssdev, int channel)
 	if (err) {
 		DSSERR("Error while sending BTA: %x\n", err);
 		r = -EIO;
+		goto err2;
 	}
 
-err1:
+err2:
 #if defined(CONFIG_PRODUCT_LGE_KU5900)  // 20120727 sangki.hyun@lge.com MP3 Playing
 	dsi_vc_disable_bta_irq(dsidev, channel);
 	dsi_unregister_isr_vc(dsidev, channel, dsi_completion_handler, &bta_completion,
@@ -3117,7 +3123,11 @@ err1:
 #endif
 	dsi_unregister_isr(dsidev, dsi_completion_handler, &completion,
 			DSI_IRQ_ERROR_MASK);
-	return 0;
+err1:
+	dsi_unregister_isr_vc(dsidev, channel, dsi_completion_handler,
+			&completion, DSI_VC_IRQ_BTA);
+err0:
+	return r;
 }
 EXPORT_SYMBOL(dsi_vc_send_bta_sync);
 
@@ -4938,11 +4948,6 @@ int omapdss_dsi_display_enable(struct omap_dss_device *dssdev)
 
 	if(!dssdev->skip_init)
 		dsi_enable_pll_clock(dsidev, 1);
-
-	/* Soft reset */
-	REG_FLD_MOD(dsidev, DSI_SYSCONFIG, 1, 1, 1);
-	_dsi_wait_reset(dsidev);
-
 
 	_dsi_initialize_irq(dsidev);
 
