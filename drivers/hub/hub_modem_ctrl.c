@@ -290,7 +290,7 @@ static ssize_t modem_uart_gpio_store(struct device *dev,
 	new_gpio_ctrl = simple_strtol(buf, NULL, 10);
 
 /*
-// 20110314 LU6800 injae02.lee@lge.com : ?yâ–²e ãƒ¬eï¿½iï¿½A?Iï¿½ï¿½Aoâ†‘â†‘ AUãƒ¬a Aï¿½â†‘âˆ
+// 20110314 LU6800 injae02.lee@lge.com : ?y¢¥e ¥ìe¨úi¢¯A?I¨ú©ªAo¢¬¢¬ AU¥ìa A¢´¢¬¢ç
    if(new_gpio_ctrl == 3)
   {
     printk("%s: new_gpio_ctrl is %d\n", __FUNCTION__, new_gpio_ctrl);
